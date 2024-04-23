@@ -18,14 +18,13 @@ const getProduct = async (req, res) => {
     }
 }
 
-
 const postProduct = async (req, res) => {
     try {
-        const { category: categoryName, section: sectionName, ...productData } = req.body;
+        const { category: categoryName, categoryTitle, section: sectionName, ...productData } = req.body;
 
-        let category = await ProductCategory.findOne({ name: categoryName });
+        let category = await ProductCategory.findOne({ name: categoryName, title: categoryTitle });
         if (!category) {
-            category = await ProductCategory.create({ name: categoryName });
+            category = await ProductCategory.create({ name: categoryName, title: categoryTitle });
         }
 
         let section = await ProductSection.findOne({ name: sectionName });
@@ -40,16 +39,20 @@ const postProduct = async (req, res) => {
             $push: { products: product._id }
         });
 
-        // Update the corresponding section document
-        await ProductSection.findByIdAndUpdate(section._id, {
-            $push: { categories: category._id }
-        });
+        // Update the corresponding section document if category is unique
+        const categoryData = await ProductSection.findOne({ categories: category._id });
+        if (!categoryData) {
+            await ProductSection.findByIdAndUpdate(section._id, {
+                $push: { categories: category._id }
+            });
+        }
 
         res.json(product);
     } catch (err) {
         res.status(400).json({ error: err.message });
     }
 };
+
 
 const deleteProductByProductId = async (req, res) => {
     try {
@@ -104,7 +107,7 @@ const getAllProduct= async(req, res) => {
 
         res.json({message: "Products found Successfully", products});
     } catch(err) {
-        res.status(400).jon({error: err.message});
+        res.status(400).json({error: err.message});
     }
 }
 
@@ -117,10 +120,88 @@ const getAllCategory= async(req, res) => {
 
         res.json({category});
     } catch(err) {
-        res.status(400).jon({error: err.message});
+        res.status(400).json({error: err.message});
+    }
+}
+
+const putCategory = async (req, res) => {
+    try {
+        const { categoryId, categoryName, categoryTitle, categoryImage } = req.body;
+
+        // Construct the updated category object
+        const updatedCategory = {
+            name: categoryName,
+            title: categoryTitle,
+            image: categoryImage
+        };
+
+        // Find the category by its _id and update it with the new values
+        const category = await ProductCategory.findOneAndUpdate(
+            { _id: categoryId },
+            updatedCategory,
+            { new: true }
+        );
+
+        // If category is null, it means the category with the given _id wasn't found
+        if (!category) {
+            return res.status(404).json({ error: "Category not found" });
+        }
+
+        // Return success message and the updated category
+        res.json({ message: "Category updated successfully", category });
+    } catch (err) {
+        // Handle any errors
+        res.status(400).json({ error: err.message });
+    }
+};
+
+
+const getAllSection = async(req, res) => {
+    try{
+        const sections = await ProductSection.find();
+        if(sections.length === 0) {
+            return res.status(404).json({error: "No products available"});
+        }
+
+        res.status(200).json({ sections });
+    } catch(err) {
+        res.status(400).json({error: err.message});
     }
 }
 
 
+const getCategoryBySection = async (req, res) => {
+    try {
+        const sectionName = req.body.sectionName;
+        if (!sectionName) {
+            return res.status(400).json({ error: "Section name is required" });
+        }
+        const section = await ProductSection.findOne({ name: sectionName });
 
-export { getProduct, postProduct, deleteProductByProductId, getProductCategoryWise, getAllProduct, getAllCategory };
+        if (!section) {
+            return res.status(404).json({ error: "Section not found" });
+        }
+
+        const categories = section.categories;
+
+        if (categories.length === 0) {
+            return res.status(404).json({ error: "No categories found for the specified section" });
+        }
+
+        const uniqueCategoryIds = new Set();
+
+        categories.forEach(categoryId => uniqueCategoryIds.add(categoryId.toString()));
+
+        // console.log(uniqueCategoryIds);
+
+        uniqueCategoryIds.forEach()
+
+
+
+        res.status(200).json({ uniqueCategoryIds });
+    } catch (err) {
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
+export { getProduct, postProduct, deleteProductByProductId, getProductCategoryWise, getAllProduct, getAllCategory, getAllSection, putCategory, getCategoryBySection };
