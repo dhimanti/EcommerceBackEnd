@@ -12,7 +12,7 @@ const getProduct = async (req, res) => {
             return res.status(404).json({error:"Product Not Found", product});
         }
         console.log(product);
-        res.json({product, message:"Product found successfully"});
+        res.status(200).json({product, message:"Product found successfully"});
     } catch(err) {
         res.status(400).json({ error: err.message });
     }
@@ -135,7 +135,6 @@ const putCategory = async (req, res) => {
             image: categoryImage
         };
 
-        // Find the category by its _id and update it with the new values
         const category = await ProductCategory.findOneAndUpdate(
             { _id: categoryId },
             updatedCategory,
@@ -172,7 +171,7 @@ const getAllSection = async(req, res) => {
 
 const getCategoryBySection = async (req, res) => {
     try {
-        const sectionName = req.body.sectionName;
+        const sectionName = req.params.sectionName;
         if (!sectionName) {
             return res.status(400).json({ error: "Section name is required" });
         }
@@ -193,12 +192,17 @@ const getCategoryBySection = async (req, res) => {
         categories.forEach(categoryId => uniqueCategoryIds.add(categoryId.toString()));
 
         // console.log(uniqueCategoryIds);
+        const categoryPromises = Array.from(uniqueCategoryIds).map(categoryId => {
+            // console.log("Fetching category with ID:", categoryId);
+            return ProductCategory.findById(categoryId).select('_id name title image');
+        });
 
-        uniqueCategoryIds.forEach()
+        // Wait for all promises to resolve
+        const categoryData = await Promise.all(categoryPromises);
+        const validCategories = categoryData.filter(category => category !== null);
 
-
-
-        res.status(200).json({ uniqueCategoryIds });
+        console.log("Category data:", validCategories);
+        res.status(200).json({ data: validCategories });
     } catch (err) {
         res.status(500).json({ error: "Internal Server Error" });
     }

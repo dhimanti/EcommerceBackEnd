@@ -7,7 +7,7 @@ const Login = async (req, res) => {
         const user = await CustomerModel.findOne({ name: name });
         if (user) {
             if (user.password === password) {
-                const token = jwt.sign({ userId: user._id }, 'your_secret_key', { expiresIn: '1h' });
+                const token = jwt.sign({ userId: user._id }, 'my_secret_key', { expiresIn: '2m' });
                 res.json({ success: true, token: token });
             } else {
                 res.json({ success: false, message: "Invalid Password" });

@@ -21,7 +21,7 @@ router.delete('/wishlist/removeProduct', deleteWishListData);
 router.get('/wishlist/showProduct/:userId', getWishListData );
 
 router.put('/updateCategory', putCategory);
-router.get('/categoryBySection', getCategoryBySection);
+router.get('/categoryBySection/:sectionName', getCategoryBySection);
 
 
 
